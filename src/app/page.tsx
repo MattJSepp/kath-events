@@ -1,16 +1,30 @@
 import React from 'react'
 import Link from 'next/link'
 import { Search, Calendar, MapPin } from 'lucide-react'
+import { EventCardGrid } from '@/components/EventCardGrid'
+import { EventCardHighlight } from '@/components/EventCardHighlight'
+import { EventCardSearch } from '@/components/EventCardSearch'
+import type { Event } from './api/events/types'
 
-export default function HomePage() {
+export const revalidate = 0  // immer frisch laden
+
+export default async function HomePage() {
+  // ① Sicherstellen, dass die Funktion async ist
+  // ② Semikolons nicht vergessen, sonst vermatscht der Parser die Zeilen
+  const base = process.env.BASE_URL!
+  const res  = await fetch(`${base}/api/events`, { cache: 'no-store' });
+  const data = (await res.json()) as { events: Event[] };   // ③ Hole das JSON und tippe es
+  const events = data.events;
+
   return (
-    <div className="min-h-screen flex flex-col">
+    
+    <div className="min-h-screen flex flex-col"> {/* bg-gray-200*/}
       {/* Navbar */}
       <nav className="sticky top-0 bg-white shadow">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <img src="/logo.svg" alt="Logo" className="h-8 w-8" />
-            <span className="text-2xl font-bold text-[#2B4593]">Kath-Events</span>
+            <img src="/images/logoTaube.png" alt="Logo" className="h-12 w-12" />
+            <span className="text-2xl font-bold text-[#2B4593]">Katholische Events</span>
           </div>
           <div className="flex-1 px-4">
             <input
@@ -35,7 +49,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative h-[60vh] w-full">
         <img
-          src="/hero.jpg"
+          src="/images/hero1_mainpage.png"
           alt="Hero background"
           className="absolute inset-0 w-full h-full object-cover filter brightness-75"
         />
@@ -63,21 +77,39 @@ export default function HomePage() {
       <main className="flex-1">
         {/* Search Results Placeholder */}
         <section id="search-results" className="container mx-auto px-4 my-12">
-          {/* TODO: Dynamische Suchergebnisse hier */}
+          <h2 className="text-3xl font-semibold mb-6">Ergebnisse</h2>
+          {events.length === 0
+            ? <p>Keine Ergebnisse</p>
+            : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {events.slice(0,12).map(evt => (
+                  <EventCardSearch key={evt.id} event={evt} />
+                ))}
+              </div>
+          }
         </section>
+
 
         {/* Highlight Section Placeholder */}
         <section id="highlights" className="container mx-auto px-4 my-12 space-y-8">
-          {/* TODO: 2-Column Highlight Cards hier */}
+          <h2 className="text-3xl font-semibold mb-6">Highlights</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+          {events.slice(0, 4).map(evt => (
+            <EventCardHighlight key={evt.id} event={evt} />
+          ))}
+          </div>
         </section>
+
 
         {/* Coming Up Events */}
         <section id="upcoming" className="container mx-auto px-4 my-12">
-          <h2 className="text-3xl font-semibold mb-6">Coming Up Events</h2>
+          <h2 className="text-3xl font-semibold mb-6">Kommende Events</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* TODO: Event Cards here */}
+            {events.slice(0,20).map(evt => (
+              <EventCardGrid key={evt.id} event={evt} />
+            ))}
           </div>
         </section>
+
       </main>
 
       {/* Footer */}
@@ -85,7 +117,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Column 1 */}
           <div>
-            <img src="/logo.svg" alt="Logo" className="h-10 mb-4" />
+            <img src="/images/logoTaube.png" alt="Logo" className="h-10 mb-4" />
             <p className="text-gray-600">Kath-Events: Katholische Veranstaltungen im Überblick</p>
           </div>
           {/* Column 2 */}
