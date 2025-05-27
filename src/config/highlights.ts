@@ -1,0 +1,1 @@
+export const HIGHLIGHT_IDS = [1, 5, 12]; // IDs der derzeitig anzuzeigenden Highlight Events

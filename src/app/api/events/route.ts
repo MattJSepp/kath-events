@@ -1,5 +1,4 @@
 // src/app/api/events/route.ts
-
 export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
@@ -10,7 +9,17 @@ import type { Event } from './types'
 // CLOB-Spalten gleich als native JS-Strings holen
 oracledb.fetchAsString = [ oracledb.CLOB ]
 
-export async function GET() {
+export async function GET(request: Request) {
+  // URL-Parameter auslesen (ungelesene werden später implementiert)
+  const url      = new URL(request.url)
+  const q       = url.searchParams.get('q')      // Stichwort (bisher ungenutzt)
+  const loc     = url.searchParams.get('loc')    // Ort (bisher ungenutzt)
+  const cat     = url.searchParams.get('cat')    // Kategorie (bisher ungenutzt)
+  const start   = url.searchParams.get('start')  // Zeitraum-Start (bisher ungenutzt)
+  const end     = url.searchParams.get('end')    // Zeitraum-Ende (bisher ungenutzt)
+  const idsParam = url.searchParams.get('ids')    
+  const ids      = idsParam ? idsParam.split(',').map(s => Number(s)) : []
+
   let conn
   try {
     conn = await oracledb.getConnection({
@@ -21,13 +30,28 @@ export async function GET() {
       walletPassword: process.env.ORACLE_WALLET_PASSWORD!
     })
 
-    const result = await conn.execute(
-      `SELECT id, title, description, event_date, location,
-              category, organizer, image_url, created_at
-       FROM events
-      ORDER BY event_date`
-    )
+    // Basis-SQL
+    let sql = `SELECT id, title, description, event_date, location,
+                      category, organizer, image_url, created_at
+                 FROM events
+                WHERE 1=1`
+    type BindParams = Record<string, string|number>
+    const binds: BindParams = {}
 
+    // IDs-Filter (für Highlights)
+    if (ids.length > 0) {
+      const placeholders = ids.map((_, i) => `:id${i}`).join(', ')
+      sql += ` AND id IN (${placeholders})`
+      ids.forEach((val, i) => { binds[`id${i}`] = val })
+    }
+
+    // TODO: harte Filter für _q, _loc, _cat, _start, _end einbauen
+    sql += ` ORDER BY event_date ASC`
+
+    // Abfrage ausführen
+    const result = await conn.execute(sql, binds)
+
+    // Ergebnisse in JS-Objekte umwandeln
     const rows = (result.rows as unknown[][]) || []
     const events: Event[] = rows.map(arr => {
       const [

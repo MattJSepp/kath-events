@@ -1,38 +1,37 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import Link from 'next/link'
 import { Search, Calendar, MapPin } from 'lucide-react'
-import { EventCardGrid } from '@/components/EventCardGrid'
-import { EventCardHighlight } from '@/components/EventCardHighlight'
-import { EventCardSearch } from '@/components/EventCardSearch'
-import type { Event } from './api/events/types'
 
+import SearchBar        from '@/components/SearchBar'
+import Spinner          from '@/components/Spinner'
+import EventList        from '@/components/EventList'
+import HighlightEvents  from '@/components/HighlightEvents'
+import ComingUpEvents   from '@/components/ComingUpEvents'
 
-export const revalidate = 0  // immer frisch laden
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-export default async function HomePage() {
-  // ① Sicherstellen, dass die Funktion async ist
-  // ② Semikolons nicht vergessen, sonst vermatscht der Parser die Zeilen
-  const base = process.env.BASE_URL!
-  const res  = await fetch(`${base}/api/events`, { cache: 'no-store' });
-  const data = (await res.json()) as { events: Event[] };   // ③ Hole das JSON und tippe es
-  const events = data.events;
+export default async function HomePage({
+  searchParams
+}: {
+  searchParams: Record<string, string | undefined>
+}) {
+  // ⚠️ hier das Promise auflösen
+  const { q, loc, cat, start, end } = await searchParams
+  // Prüfen, ob wir eine Suche anzeigen oder die Default-Sections
+  const isSearching = Boolean(q || loc || cat || start || end)
 
   return (
-    
-    <div className="min-h-screen flex flex-col"> {/* bg-gray-200*/}
+    <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <nav className="sticky top-0 bg-white shadow">
+      <nav className="sticky top-0 bg-white shadow z-10">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <img src="/images/logoTaube.png" alt="Logo" className="h-12 w-12" />
             <span className="text-2xl font-bold text-[#2B4593]">Katholische Events</span>
           </div>
           <div className="flex-1 px-4">
-            <input
-              type="text"
-              placeholder="Suche nach Events..."
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-[#2B4593]"
-            />
+            <SearchBar />
           </div>
           <div className="flex items-center space-x-6">
             <Link href="/" className="text-gray-700 hover:text-[#2B4593]">Home</Link>
@@ -58,62 +57,25 @@ export default async function HomePage() {
           <h1 className="text-4xl md:text-6xl font-bold">Finde katholische Events</h1>
           <p className="mt-4 text-lg md:text-2xl">Entdecke und teile Veranstaltungen in deiner Nähe</p>
           <ul className="mt-6 space-y-3">
-            <li className="flex items-center space-x-2">
-              <Search />
-              <span>Einfache Suche</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <Calendar />
-              <span>Kalenderansicht</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <MapPin />
-              <span>Ortsbasiert</span>
-            </li>
+            <li className="flex items-center space-x-2"><Search /><span>Einfache Suche</span></li>
+            <li className="flex items-center space-x-2"><Calendar /><span>Kalenderansicht</span></li>
+            <li className="flex items-center space-x-2"><MapPin /><span>Ortsbasiert</span></li>
           </ul>
         </div>
       </section>
 
-      {/* Main Content */}
+      {/* ② Main-Section immer sichtbar, EventList bei Suche oben */}
       <main className="flex-1">
-        {/* Search Results Placeholder */}
-        <section id="search-results" className="container mx-auto px-4 my-12">
-          <h2 className="text-3xl font-semibold mb-6">Ergebnisse</h2>
-          {events.length === 0
-            ? <p>Keine Ergebnisse</p>
-            : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {events.slice(0,12).map(evt => (
-                  <EventCardSearch key={evt.id} event={evt} />
-                ))}
-              </div>
-          }
-        </section>
-
-
-        {/* Highlight Section Placeholder */}
-        <section id="highlights" className="container mx-auto px-4 my-12 space-y-8">
-          <h2 className="text-3xl font-semibold mb-6">Highlights</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-          {events.slice(0, 4).map(evt => (
-            <EventCardHighlight key={evt.id} event={evt} />
-          ))}
+        {isSearching && (
+          <div className="mb-8">
+        <Suspense fallback={<Spinner />}>
+          <EventList q={q} loc={loc} cat={cat} start={start} end={end} />
+        </Suspense>
           </div>
-        </section>
-
-
-        {/* Coming Up Events */}
-        <section id="upcoming" className="container mx-auto px-4 my-12">
-          <h2 className="text-3xl font-semibold mb-6">Kommende Events</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {events.slice(0,20).map(evt => (
-              <EventCardGrid key={evt.id} event={evt} />
-            ))}
-          </div>
-        </section>
-
+        )}
+        <HighlightEvents />
+        <ComingUpEvents />
       </main>
-
-      {/* Footer */}
       <footer className="bg-gray-100 py-12">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Column 1 */}
