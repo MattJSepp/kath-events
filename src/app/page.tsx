@@ -6,6 +6,7 @@ import { EventCardHighlight } from '@/components/EventCardHighlight'
 import { EventCardSearch } from '@/components/EventCardSearch'
 import type { Event } from './api/events/types'
 
+
 export const revalidate = 0  // immer frisch laden
 
 export default async function HomePage() {
@@ -47,9 +48,9 @@ export default async function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative h-[60vh] w-full">
+      <section className="relative h-[40vh] w-full">
         <img
-          src="/images/hero1_mainpage.png"
+          src="/images/hero1_mainpage4k.png"
           alt="Hero background"
           className="absolute inset-0 w-full h-full object-cover filter brightness-75"
         />

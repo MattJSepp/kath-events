@@ -8,7 +8,7 @@ export function EventCardSearch({ event }: Props) {
   return (
     <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
       <img
-        src={event.image_url ?? '/images/default-event.jpg'}
+        src={event.image_url ?? '/images/defaultEvent.png'}
         alt={event.title}
         className="w-full h-40 object-cover"
       />
