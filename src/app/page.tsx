@@ -11,13 +11,24 @@ import ComingUpEvents   from '@/components/ComingUpEvents'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function HomePage({
+export default function HomePage({
   searchParams
 }: {
-  searchParams: Record<string, string | undefined>
+  // Next liefert hier ggf. auch string-Arrays (bei mehrfachen Parametern)
+  searchParams: Record<string, string | string[] | undefined>
 }) {
+  // 1) Helfer, um Arrays auf den ersten Wert zu reduzieren
+  const getSingle = (v: string | string[] | undefined) =>
+    Array.isArray(v) ? v[0] : v
+
+  // 2) Jetzt bleiben nur noch reine strings übrig
+  const q     = getSingle(searchParams.q)
+  const loc   = getSingle(searchParams.loc)
+  const cat   = getSingle(searchParams.cat)
+  const start = getSingle(searchParams.start)
+  const end   = getSingle(searchParams.end)
   // ⚠️ hier das Promise auflösen
-  const { q, loc, cat, start, end } = await searchParams
+  //const { q, loc, cat, start, end } = await searchParams
   // Prüfen, ob wir eine Suche anzeigen oder die Default-Sections
   const isSearching = Boolean(q || loc || cat || start || end)
 
@@ -71,9 +82,9 @@ export default async function HomePage({
             <Suspense fallback={<Spinner />}>
               <EventList
                 searchParams={{
-                  ...(q   ? { q   } : {}),
-                  ...(loc ? { loc } : {}),
-                  ...(cat ? { cat } : {}),
+                  ...(q     ? { q     } : {}),
+                  ...(loc   ? { loc   } : {}),
+                  ...(cat   ? { cat   } : {}),
                   ...(start ? { start } : {}),
                   ...(end   ? { end   } : {})
                 }}
