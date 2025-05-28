@@ -1,27 +1,44 @@
 'use client'
 import React, { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, MapPin, Sliders } from 'lucide-react'
+import { Search, MapPin, Sliders, Trash2 } from 'lucide-react'
+import DatePicker, { registerLocale } from 'react-datepicker'
+import { de } from 'date-fns/locale/de'
+import 'react-datepicker/dist/react-datepicker.css'
+
+registerLocale('de', de)
 
 export default function SearchBar() {
   const router = useRouter()
-  const [keyword, setKeyword]   = useState('')
-  const [location, setLocation] = useState('')
+  const [keyword, setKeyword]     = useState('')
+  const [location, setLocation]   = useState('')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [category, setCategory]   = useState<string>('')
+  const [startDateObj, setStartDateObj] = useState<Date | null>(null)
+  const [endDateObj, setEndDateObj]     = useState<Date | null>(null)
+  const [openPicker, setOpenPicker]     = useState<'start' | 'end' | null>(null)
+
   const keywordRef = useRef<HTMLInputElement>(null)
   const locRef     = useRef<HTMLInputElement>(null)
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [category,    setCategory]    = useState<string>('')
-  const [startDate, setStartDate] = useState<string>('')
-  const [endDate,   setEndDate]   = useState<string>('')
 
-
+  const hasSearch   = Boolean(keyword || location || category || startDateObj || endDateObj)
+  const hasLocation = Boolean(location)
+  const hasFilter   = Boolean(category || startDateObj || endDateObj)
 
   function handleSearch(term?: string) {
-    const q   = term ?? keyword
-    const loc = location
+    const q         = term ?? keyword
+    const locParam  = location
+    const catParam  = category
+    const startParam= startDateObj ? startDateObj.toISOString().split('T')[0] : ''
+    const endParam  = endDateObj   ? endDateObj.toISOString().split('T')[0]   : ''
+
     const params = new URLSearchParams()
-    if (q)   params.set('q', q)
-    if (loc) params.set('loc', loc)
+    if (q)          params.set('q', q)
+    if (locParam)   params.set('loc', locParam)
+    if (catParam)   params.set('cat', catParam)
+    if (startParam) params.set('start', startParam)
+    if (endParam)   params.set('end', endParam)
+
     router.push(`/?${params.toString()}`)
   }
 
@@ -31,19 +48,15 @@ export default function SearchBar() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex items-center space-x-2 p-4 bg-white rounded-full shadow">
-      {/* Lupen-Icon */}
+    <form onSubmit={onSubmit} className="flex items-center space-x-2 p-4 bg-white rounded-full shadow relative">
+      {/* Such-Icon */}
       <button
         type="button"
         onClick={() => {
-          // Immer Suche auslösen
           handleSearch()
-          // zusätzlich Fokus ins Keyword-Feld, wenn noch nichts eingegeben
-          if (!keyword && !location) {
-            keywordRef.current?.focus()
-          }
+          if (!hasSearch) keywordRef.current?.focus()
         }}
-        className="p-2 hover:bg-gray-100 rounded-full"
+        className={`p-2 rounded-full ${hasSearch ? 'bg-[#2B4593] text-white' : 'hover:bg-gray-500'}`}
       >
         <Search size={20} />
       </button>
@@ -61,17 +74,16 @@ export default function SearchBar() {
             handleSearch()
           }
         }}
-        className="flex-1 px-2 py-1 outline-none rounded-full"
+        className="flex-1 px-2 py-1 outline-none rounded-full text-gray-500"
       />
 
-      {/* Trennlinie */}
       <div className="w-px h-6 bg-gray-300" />
 
-      {/* MapPin-Icon */}
+      {/* Orts-Icon */}
       <button
         type="button"
         onClick={() => locRef.current?.focus()}
-        className="p-2 hover:bg-gray-100 rounded-full"
+        className={`p-2 rounded-full ${hasLocation ? 'bg-[#2B4593] text-white' : 'hover:bg-gray-500'}`}
       >
         <MapPin size={20} />
       </button>
@@ -89,58 +101,145 @@ export default function SearchBar() {
             handleSearch()
           }
         }}
-        className="flex-1 px-2 py-1 outline-none rounded-full"
+        className="flex-1 px-2 py-1 outline-none rounded-full text-gray-500"
       />
 
-      {/* Trennlinie */}
       <div className="w-px h-6 bg-gray-300" />
 
-      {/* Filter/Sliders-Icon */}
+      {/* Filter-Icon + Dropdown */}
       <div className="relative">
         <button
           type="button"
-          onClick={() => setIsFilterOpen(open => !open)}
-          className="p-2 hover:bg-gray-100 rounded-full"
+          onClick={() => setIsFilterOpen(o => !o)}
+          className={`p-2 rounded-full ${hasFilter ? 'bg-[#2B4593] text-white' : 'hover:bg-gray-500'}`}
         >
           <Sliders size={20} />
         </button>
-        {isFilterOpen && (
-          <div className="absolute top-full right-0 mt-2 w-48 bg-white border rounded shadow-lg p-4 z-50">
-          <h4 className="font-medium mb-2">Beliebte Kategorien</h4>
-          <div className="flex flex-wrap gap-2">
-            {['Gottesdienst','Pilgerfahrt','Konzert','Seminar'].map(catName => (
-              <button
-                key={catName}
-                onClick={() => { setCategory(catName); setIsFilterOpen(false) }}
-                className={`px-2 py-1 text-sm rounded-full ${category===catName ? 'bg-[#2B4593] text-white' : 'bg-gray-100'}`}
-              >
-                {catName}
-              </button>
-            ))}
-          </div>
 
-          {/* Datumsauswahl */}
-          <div className="mt-4">
-            <label className="block text-xs">Von</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="w-full border rounded px-2 py-1 text-sm"
-            />
-            <label className="block text-xs mt-2">Bis</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="w-full border rounded px-2 py-1 text-sm"
-            />
-          </div>
+        {isFilterOpen && (
+          <div className="absolute top-full right-0 mt-2 w-56 bg-white border rounded shadow-lg p-4 z-50">
+            <h4 className="font-medium mb-2 text-gray-500">Beliebte Kategorien</h4>
+            <div className="flex flex-wrap gap-2">
+              {['Gottesdienst', 'Pilgerfahrt', 'Konzert', 'Seminar'].map(catName => (
+                <button
+                  key={catName}
+                  type="button"
+                  onClick={() => {
+                    setCategory(prev => (prev === catName ? '' : catName))
+                  }}
+                  className={`px-2 py-1 text-sm rounded-full ${
+                    category === catName ? 'bg-[#2B4593] text-white' : 'bg-gray-300'
+                  }`}
+                >
+                  {catName}
+                </button>
+              ))}
+            </div>
+
+            {/* Datumsauswahl */}
+            <div className="mt-4">
+              <h4 className="font-medium mb-2 text-gray-500">Zeitraum</h4>
+                        
+              {/* Start */}
+              <div className="flex items-center justify-between">
+                <label className="text-xs">Von</label>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpenPicker(prev => (prev === 'start' ? null : 'start'))}
+                    className="text-sm text-blue-600"
+                  >
+                    {startDateObj
+                      ? startDateObj.toLocaleDateString()
+                      : 'Datum wählen'}
+                  </button>
+                  {startDateObj && (
+                    <button
+                      type="button"
+                      onClick={() => setStartDateObj(null)}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {openPicker === 'start' && (
+                <DatePicker
+                  inline
+                  selected={startDateObj}
+                  onChange={(date: Date | null) => {
+                    setStartDateObj(date)
+                    setOpenPicker(null)
+                  }}
+                  minDate={new Date()}
+                  maxDate={endDateObj || undefined}
+                  locale="de"
+                  dayClassName={d => {
+                    if (startDateObj && d.getTime() === startDateObj.getTime()) {
+                      return 'react-datepicker__day--custom-start'
+                    }
+                    if (endDateObj && d.getTime() === endDateObj.getTime()) {
+                      return 'react-datepicker__day--custom-end'
+                    }
+                    return ''
+                  }}
+                />
+              )}
+            
+              {/* Ende */}
+              <div className="flex items-center justify-between mt-2">
+                <label className="text-xs">Bis</label>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpenPicker(prev => (prev === 'end' ? null : 'end'))}
+                    className="text-sm text-blue-600"
+                  >
+                    {endDateObj
+                      ? endDateObj.toLocaleDateString()
+                      : 'Datum wählen'}
+                  </button>
+                  {endDateObj && (
+                    <button
+                      type="button"
+                      onClick={() => setEndDateObj(null)}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {openPicker === 'end' && (
+                <DatePicker
+                  inline
+                  selected={endDateObj}
+                  onChange={(date: Date | null) => {
+                    setEndDateObj(date)
+                    setOpenPicker(null)
+                  }}
+                  minDate={startDateObj || new Date()}
+                  locale="de"
+                  dayClassName={d => {
+                    if (startDateObj && d.getTime() === startDateObj.getTime()) {
+                      return 'react-datepicker__day--custom-start'
+                    }
+                    if (endDateObj && d.getTime() === endDateObj.getTime()) {
+                      return 'react-datepicker__day--custom-end'
+                    }
+                    return ''
+                  }}
+                />
+              )}
+            </div>
+
+
+
+
           </div>
         )}
       </div>
-
-
     </form>
   )
 }

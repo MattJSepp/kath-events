@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'react-datepicker/dist/react-datepicker.css';
 
 :root {
   --background: #ffffff;
@@ -19,3 +20,26 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+
+/* Heute immer grau im aktuellen Monat */
+.react-datepicker__day--today {
+  background-color: #e2e8f0;
+}
+
+/* Entferne jede rote Hervorhebung durch keyboard-selected */
+.react-datepicker__day--keyboard-selected {
+  background-color: transparent !important;
+}
+
+/* Grüner Tag für Start-Datum */
+.react-datepicker__day--custom-start {
+  background-color: #22c55e !important;
+}
+
+/* Roter Tag für End-Datum */
+.react-datepicker__day--custom-end {
+  background-color: #ef4444 !important;
+}
+

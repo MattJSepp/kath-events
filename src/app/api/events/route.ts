@@ -6,19 +6,31 @@ import oracledb from 'oracledb'
 import path from 'path'
 import type { Event } from './types'
 
+interface OracleEventRow {
+  ID: number
+  TITLE: string
+  DESCRIPTION: string | null
+  EVENT_DATE: Date
+  LOCATION: string | null
+  CATEGORY: string | null
+  ORGANIZER: string | null
+  IMAGE_URL: string | null
+  CREATED_AT: Date
+}
+
 // CLOB-Spalten gleich als native JS-Strings holen
 oracledb.fetchAsString = [ oracledb.CLOB ]
 
 export async function GET(request: Request) {
-  // URL-Parameter auslesen (ungelesene werden später implementiert)
-  const url      = new URL(request.url)
-  const q       = url.searchParams.get('q')      // Stichwort (bisher ungenutzt)
-  const loc     = url.searchParams.get('loc')    // Ort (bisher ungenutzt)
-  const cat     = url.searchParams.get('cat')    // Kategorie (bisher ungenutzt)
-  const start   = url.searchParams.get('start')  // Zeitraum-Start (bisher ungenutzt)
-  const end     = url.searchParams.get('end')    // Zeitraum-Ende (bisher ungenutzt)
-  const idsParam = url.searchParams.get('ids')    
-  const ids      = idsParam ? idsParam.split(',').map(s => Number(s)) : []
+  // URL-Parameter auslesen
+  const url       = new URL(request.url)
+  const q         = url.searchParams.get('q')      ?? ''
+  const loc       = url.searchParams.get('loc')    ?? ''
+  const cat       = url.searchParams.get('cat')    ?? ''
+  const start     = url.searchParams.get('start')  ?? ''
+  const end       = url.searchParams.get('end')    ?? ''
+  const idsParam  = url.searchParams.get('ids')
+  const ids       = idsParam ? idsParam.split(',').map(s => Number(s)) : []
 
   let conn
   try {
@@ -31,10 +43,11 @@ export async function GET(request: Request) {
     })
 
     // Basis-SQL
-    let sql = `SELECT id, title, description, event_date, location,
-                      category, organizer, image_url, created_at
-                 FROM events
-                WHERE 1=1`
+    let sql = `
+      SELECT id, title, description, event_date, location,
+             category, organizer, image_url, created_at
+        FROM events
+       WHERE 1=1`
     type BindParams = Record<string, string|number>
     const binds: BindParams = {}
 
@@ -42,41 +55,74 @@ export async function GET(request: Request) {
     if (ids.length > 0) {
       const placeholders = ids.map((_, i) => `:id${i}`).join(', ')
       sql += ` AND id IN (${placeholders})`
-      ids.forEach((val, i) => { binds[`id${i}`] = val })
+      ids.forEach((val, i) => {
+        binds[`id${i}`] = val
+      })
     }
 
-    // TODO: harte Filter für _q, _loc, _cat, _start, _end einbauen
+    // Stichwort-Suche (Title, Category, Organizer, Location)
+    if (q) {
+      sql += `
+        AND (
+          LOWER(title)     LIKE '%'||:q||'%' OR
+          LOWER(category)  LIKE '%'||:q||'%' OR
+          LOWER(organizer) LIKE '%'||:q||'%' OR
+          LOWER(location)  LIKE '%'||:q||'%'
+        )`
+      binds.q = q.toLowerCase()
+    }
+
+    // Ort-Filter
+    if (loc) {
+      sql += ` AND LOWER(location) LIKE '%'||:loc||'%'`
+      binds.loc = loc.toLowerCase()
+    }
+
+    // Kategorie-Filter (exakt)
+    if (cat) {
+      sql += ` AND category = :cat`
+      binds.cat = cat
+    }
+
+    // Zeitraum-Start
+    if (start) {
+      sql += ` AND event_date >= TO_DATE(:bstart,'YYYY-MM-DD')`
+      binds.bstart = start
+    }
+
+    // Zeitraum-Ende
+    if (end) {
+      sql += ` AND event_date <= TO_DATE(:bend,'YYYY-MM-DD')`
+      binds.bend = end
+    }
+
+    // Sortierung
     sql += ` ORDER BY event_date ASC`
 
     // Abfrage ausführen
-    const result = await conn.execute(sql, binds)
+    const result = await conn.execute(
+      sql,
+      binds,
+      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+    )
 
     // Ergebnisse in JS-Objekte umwandeln
-    const rows = (result.rows as unknown[][]) || []
-    const events: Event[] = rows.map(arr => {
-      const [
-        id, title, description, event_date,
-        location, category, organizer,
-        image_url, created_at
-      ] = arr as [
-        number, string, string|null, Date,
-        string|null, string|null, string|null,
-        string|null, Date
-      ]
-      return {
-        id,
-        title,
-        description,
-        event_date:  event_date.toISOString(),
-        location,
-        category,
-        organizer,
-        image_url,
-        created_at:  created_at.toISOString()
-      }
-    })
+    const rows = (result.rows as OracleEventRow[]) || []
+
+    const events: Event[] = rows.map(row => ({
+      id:          row.ID,
+      title:       row.TITLE,
+      description: row.DESCRIPTION,
+      event_date:  row.EVENT_DATE.toISOString(),
+      location:    row.LOCATION,
+      category:    row.CATEGORY,
+      organizer:   row.ORGANIZER,
+      image_url:   row.IMAGE_URL,
+      created_at:  row.CREATED_AT.toISOString(),
+    }))
 
     return NextResponse.json({ events })
+
   } catch (err: unknown) {
     console.error('GET /api/events Error:', err)
     const msg = err instanceof Error ? err.message : String(err)
@@ -115,6 +161,7 @@ export async function POST(request: Request) {
     )
     await conn.commit()
     return NextResponse.json({}, { status: 201 })
+
   } catch (err: unknown) {
     console.error('POST /api/events Error:', err)
     const msg = err instanceof Error ? err.message : String(err)

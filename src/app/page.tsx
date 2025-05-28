@@ -64,18 +64,37 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* ② Main-Section immer sichtbar, EventList bei Suche oben */}
+      {/* Main-Section immer sichtbar, EventList bei Suche oben */}
       <main className="flex-1">
         {isSearching && (
           <div className="mb-8">
-        <Suspense fallback={<Spinner />}>
-          <EventList q={q} loc={loc} cat={cat} start={start} end={end} />
-        </Suspense>
+            <Suspense fallback={<Spinner />}>
+              <EventList
+                searchParams={{
+                  ...(q   ? { q   } : {}),
+                  ...(loc ? { loc } : {}),
+                  ...(cat ? { cat } : {}),
+                  ...(start ? { start } : {}),
+                  ...(end   ? { end   } : {})
+                }}
+              />
+            </Suspense>
           </div>
         )}
-        <HighlightEvents />
-        <ComingUpEvents />
+
+
+        {/* Highlight-Section */}
+        <Suspense fallback={<Spinner />}>
+          <HighlightEvents />
+        </Suspense>
+
+        {/* Coming Up Events */}
+        <Suspense fallback={<Spinner />}>
+          <ComingUpEvents />
+        </Suspense>
       </main>
+
+      {/* Footer */}
       <footer className="bg-gray-100 py-12">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Column 1 */}
