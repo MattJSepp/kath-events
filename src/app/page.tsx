@@ -11,26 +11,33 @@ import ComingUpEvents   from '@/components/ComingUpEvents'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default function HomePage({
+export default async function HomePage({
   searchParams
 }: {
-  // Next liefert hier ggf. auch string-Arrays (bei mehrfachen Parametern)
+  // ② Erlaube neben string auch string[] und undefined
   searchParams: Record<string, string | string[] | undefined>
 }) {
-  // 1) Helfer, um Arrays auf den ersten Wert zu reduzieren
+  // 1) Da searchParams jetzt async ist, erst awaiten…
+  const resolved = await searchParams
+  // 2) …und dann mit Strings und ggf. Arrays arbeiten
   const getSingle = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v
 
-  // 2) Jetzt bleiben nur noch reine strings übrig
-  const q     = getSingle(searchParams.q)
-  const loc   = getSingle(searchParams.loc)
-  const cat   = getSingle(searchParams.cat)
-  const start = getSingle(searchParams.start)
-  const end   = getSingle(searchParams.end)
-  // ⚠️ hier das Promise auflösen
-  //const { q, loc, cat, start, end } = await searchParams
+  const q     = getSingle(resolved.q)
+  const loc   = getSingle(resolved.loc)
+  const cat   = getSingle(resolved.cat)
+  const start = getSingle(resolved.start)
+  const end   = getSingle(resolved.end)
   // Prüfen, ob wir eine Suche anzeigen oder die Default-Sections
   const isSearching = Boolean(q || loc || cat || start || end)
+
+  // ③ Sanitisiere die Params für EventList…
+  const listParams: Record<string,string> = {}
+  if (q)     listParams.q     = q
+  if (loc)   listParams.loc   = loc
+  if (cat)   listParams.cat   = cat
+  if (start) listParams.start = start
+  if (end)   listParams.end   = end
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -80,15 +87,7 @@ export default function HomePage({
         {isSearching && (
           <div className="mb-8">
             <Suspense fallback={<Spinner />}>
-              <EventList
-                searchParams={{
-                  ...(q     ? { q     } : {}),
-                  ...(loc   ? { loc   } : {}),
-                  ...(cat   ? { cat   } : {}),
-                  ...(start ? { start } : {}),
-                  ...(end   ? { end   } : {})
-                }}
-              />
+              <EventList searchParams={listParams} />
             </Suspense>
           </div>
         )}
