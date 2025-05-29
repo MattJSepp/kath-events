@@ -12,15 +12,14 @@ import ComingUpEvents   from '@/components/ComingUpEvents'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function HomePage(
-  props: {
-    // hier als Promise typisieren, weil Next.js Runtime es so übergibt
-    searchParams: Record<string, string | string[] | undefined>
-                   | Promise<Record<string, string | string[] | undefined>>
-  }
-) {
+export default async function HomePage({
+  searchParams
+}: {
+  // ❗️ ausschliesslich Promise, kein Union mehr
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   // 1) erst auflösen
-  const resolved = await props.searchParams
+  const resolved = await searchParams
 
   // 2) Helper zum Reduzieren möglicher string-Arrays
   const getSingle = (v: string | string[] | undefined) =>
