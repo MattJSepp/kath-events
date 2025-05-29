@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Search, Calendar, MapPin } from 'lucide-react'
 
 import SearchBar        from '@/components/SearchBar'
@@ -12,33 +12,37 @@ import ComingUpEvents   from '@/components/ComingUpEvents'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function HomePage({
-  searchParams
-}: {
-  // ② Erlaube neben string auch string[] und undefined
-  searchParams: Record<string, string | string[] | undefined>
-}) {
-  // 1) Da searchParams jetzt async ist, erst awaiten…
-  const resolved = await searchParams
-  // 2) …und dann mit Strings und ggf. Arrays arbeiten
+export default async function HomePage(
+  props: {
+    // hier als Promise typisieren, weil Next.js Runtime es so übergibt
+    searchParams: Record<string, string | string[] | undefined>
+                   | Promise<Record<string, string | string[] | undefined>>
+  }
+) {
+  // 1) erst auflösen
+  const resolved = await props.searchParams
+
+  // 2) Helper zum Reduzieren möglicher string-Arrays
   const getSingle = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v
 
+  // 3) jetzt destrukturieren
   const q     = getSingle(resolved.q)
   const loc   = getSingle(resolved.loc)
   const cat   = getSingle(resolved.cat)
   const start = getSingle(resolved.start)
   const end   = getSingle(resolved.end)
-  // Prüfen, ob wir eine Suche anzeigen oder die Default-Sections
+
   const isSearching = Boolean(q || loc || cat || start || end)
 
-  // ③ Sanitisiere die Params für EventList…
+  // 4) nur saubere strings an EventList übergeben
   const listParams: Record<string,string> = {}
   if (q)     listParams.q     = q
   if (loc)   listParams.loc   = loc
   if (cat)   listParams.cat   = cat
   if (start) listParams.start = start
   if (end)   listParams.end   = end
+
 
   return (
     <div className="min-h-screen flex flex-col">
