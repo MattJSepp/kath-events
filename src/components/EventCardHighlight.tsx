@@ -1,5 +1,6 @@
 // src/components/EventCardGrid.tsx
 import React from 'react'
+import Image from 'next/image'
 import type { Event } from '../app/api/events/types'
 
 interface Props { event: Event }
@@ -7,10 +8,13 @@ interface Props { event: Event }
 export function EventCardHighlight({ event }: Props) {
   return (
     <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
-      <img
-        src={event.image_url ?? '/images/defaultEvent.png'}
+      <Image
+        src={event.image_url || '/images/defaultEvent.png'}
         alt={event.title}
-        className="w-full h-40 object-cover"
+        width={400}
+        height={250}
+        className="object-cover h-48 w-full rounded"
+        unoptimized={false}
       />
       <div className="p-4">
         <h3 className="text-lg font-semibold">{event.title}</h3>

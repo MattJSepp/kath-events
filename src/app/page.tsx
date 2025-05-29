@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Search, Calendar, MapPin } from 'lucide-react'
 
@@ -45,7 +46,7 @@ export default async function HomePage({
       <nav className="sticky top-0 bg-white shadow z-10">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <img src="/images/logoTaube.png" alt="Logo" className="h-12 w-12" />
+            <Image src="/images/logoTaube.png" alt="Logo" width={48} height={48} className="h-12 w-12" />
             <span className="text-2xl font-bold text-[#2B4593]">Katholische Events</span>
           </div>
           <div className="flex-1 px-4">
@@ -66,10 +67,12 @@ export default async function HomePage({
 
       {/* Hero Section */}
       <section className="relative h-[40vh] w-full">
-        <img
+        <Image
           src="/images/hero1_mainpage4k.png"
           alt="Hero background"
+          fill
           className="absolute inset-0 w-full h-full object-cover filter brightness-75"
+          priority
         />
         <div className="relative container mx-auto px-4 h-full flex flex-col justify-center text-white">
           <h1 className="text-4xl md:text-6xl font-bold">Finde katholische Events</h1>
@@ -109,7 +112,7 @@ export default async function HomePage({
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Column 1 */}
           <div>
-            <img src="/images/logoTaube.png" alt="Logo" className="h-10 mb-4" />
+            <Image src="/images/logoTaube.png" alt="Logo" width={40} height={40} className="h-10 mb-4" />
             <p className="text-gray-600">Kath-Events: Katholische Veranstaltungen im Überblick</p>
           </div>
           {/* Column 2 */}
